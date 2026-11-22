@@ -1,0 +1,18 @@
+{
+  "format_version": 1,
+  "declared_on_pacific": "2026-11-21",
+  "station_complex_ids": ["602", "611", "628"],
+  "timezone": "America/New_York",
+  "development_start": "2025-01-01",
+  "development_end_exclusive": "2026-09-01",
+  "calibration_start": "2026-09-01",
+  "calibration_end_exclusive": "2026-10-01",
+  "holdout_start": "2026-10-01",
+  "holdout_end_exclusive": "2026-11-01",
+  "holdout_release_pacific": "2026-12-02",
+  "validation_month_starts": ["2025-03-01", "2025-06-01", "2025-09-01", "2026-01-01", "2026-04-01", "2026-07-01"],
+  "publication_lag_days": [1, 3, 7, 14],
+  "dst_policy": "exclude_entire_transition_day",
+  "missing_policy": "no_zero_imputation",
+  "notes": "Declared before fitting models. Source counts/bounds may be checked for availability; final-period targets must not be used for model selection. Calibration is reserved for past-residual ranges. Backtest enforcement is the next milestone."
+}

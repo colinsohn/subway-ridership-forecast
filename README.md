@@ -4,7 +4,7 @@ Forecast next-day hourly entries at selected NYC subway station complexes. The p
 
 ## Current status
 
-Implemented: a tested local-calendar forecast cutoff, a bounded official MTA downloader, source-revision guards, row validation, a typed DuckDB snapshot, and offline byte-integrity verification. Station-hour aggregation, gap/DST auditing, models, and backtests are next. No forecasting accuracy or hourly coverage is claimed yet.
+Implemented: a tested local-calendar forecast cutoff, a bounded official MTA downloader, source-revision guards, row validation, a typed DuckDB snapshot, and offline byte-integrity verification. Station-hour aggregation and gap/fare/DST auditing are implemented; models and backtests are next. No forecasting accuracy is claimed. Coverage reports describe observed local-hour labels, not certified completeness of every fare partition.
 
 ## Setup and checks
 
@@ -56,3 +56,32 @@ Raw downloads, databases, environments, and caches stay outside public Git. Smal
 - The downloader compares dataset `rowsUpdatedAt` and required column types before and after retrieval. A revision change aborts the run. This is a guard, not a transactional API snapshot; metadata could lag a concurrent change. Offset pagination uses the [documented stable ordering](https://dev.socrata.com/docs/queries/order.html), [limit](https://dev.socrata.com/docs/queries/limit.html), and [offset](https://dev.socrata.com/docs/queries/offset.html) parameters.
 - These are **current revised historical records**. Dataset revision and retrieval times do not reconstruct when each historical service day first became available. Later backtests must simulate and disclose reporting-lag assumptions using `forecast_window.py`; they cannot treat retrieval metadata as historical publication evidence.
 - A rerun can legitimately have a different checksum after source revisions. Keep the original manifest to identify the selection/revision that was tested. Validation totals are ingestion checks, not evaluation results.
+
+## Aggregate station-hours and audit coverage
+
+```sh
+python aggregate.py data/raw/smoke-2025-01-06-2025-01-13 \
+  --output data/processed/smoke-2025-01-06-2025-01-13
+```
+
+The command verifies the snapshot's checksums first, reads its DuckDB database without modifying it, and writes a new directory containing `station_hours.duckdb`, `station_hours.parquet`, and `audit.json`. Existing output directories are rejected. Time-zone rules come explicitly from pinned `tzdata==2025.2`, independent of the host's zone database.
+
+The panel key is `(station_complex_id, local_timestamp)`. Each requested station gets 24 **wall-hour labels** per local calendar date, including stations absent from the input. `service_date` is that local calendar date with a midnight boundary; there is no 4am service-day shift. `target` sums the observed fare/payment rows' ridership once; transfers remain a separate audit column. A fully absent station-hour has status `missing` and a null target. A reported zero has status `observed` and target zero. No zero filling or gap interpolation is performed.
+
+Non-DST duplicate `(station, hour, payment_method, fare_class_category)` keys and unknown/contradictory fare/payment labels cause aggregation to fail. Category counts and absent-pair diagnostics are reported without inventing zeros. A missing fare category could mean no transactions or incomplete reporting, so even an observed hour is not certified as having every partition. The diagnostic's reference pairs come from the current snapshot; do not use them as model inputs or historical availability evidence.
+
+For **both DST transition days**, all 24 wall-hour labels have status `excluded_dst_day` and null model targets. Raw grouped values remain in `ridership_observed` for inspection. Nonexistent spring and ambiguous fall labels are identified by UTC round trips. The source has no UTC offset to separate the two fall occurrences, so no artificial UTC instants or 25th hourly target are fabricated.
+
+### Measured smoke audits
+
+| Selection, three station complexes | Raw rows | Wall-hour grid rows | Missing eligible hours | DST rows excluded from targets |
+| --- | ---: | ---: | ---: | ---: |
+| Jan 6–12, 2025 | 4,841 | 504 | 0 | 0 |
+| Mar 8–10, 2025 | 2,220 | 216 | 0 | 72 |
+| Nov 1–3, 2025 | 2,282 | 216 | 0 | 72 |
+
+Each audit conserved the input ridership sum. January's fare/payment pair counts varied from 4 to 11 per observed hour across these stations. The spring source contains rows labeled `2025-03-09T02:00:00`, a nonexistent local hour; those records are retained as a source anomaly, not reinterpreted or silently dropped. Fall's `2025-11-02T01:00:00` has no offset distinguishing its two physical occurrences. These findings support the conservative day-exclusion policy, and they do not establish accuracy or system-wide data quality. Small measured audit reports are in `reports/aggregation_*.json`.
+
+Reproduce the DST probes with `ingest.py download --start 2025-03-08 --end 2025-03-11 --stations 611 602 628 --output data/raw/dst-spring-2025` and the same command for November 1–4 into `data/raw/dst-fall-2025`, then run `aggregate.py` on each. End dates are exclusive. Snapshots are not combined across revisions without recording their provenance.
+
+The predeclared development/calibration/final-period boundaries are in [EVALUATION_PLAN.md](EVALUATION_PLAN.md) and `study_config.json`. October 2026 is reserved for final evaluation; no model fitting or holdout scoring has occurred. The next milestone implements chronological folds and the first seasonal baselines with availability cutoffs.
