@@ -1,6 +1,6 @@
 # Frozen study periods
 
-Declared November 21, 2026, before fitting a model or computing forecast errors. Machine-readable dates are in `study_config.json`; split enforcement will be implemented with chronological folds next.
+Declared November 21, 2026, before fitting a model or computing forecast errors. Machine-readable dates are in `study_config.json`; the development backtest now enforces these boundaries and refuses calibration/holdout input panels.
 
 | Purpose | Local service dates |
 | --- | --- |

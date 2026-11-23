@@ -4,7 +4,7 @@ Forecast next-day hourly entries at selected NYC subway station complexes. The p
 
 ## Current status
 
-Implemented: a tested local-calendar forecast cutoff, a bounded official MTA downloader, source-revision guards, row validation, a typed DuckDB snapshot, and offline byte-integrity verification. Station-hour aggregation and gap/fare/DST auditing are implemented; models and backtests are next. No forecasting accuracy is claimed. Coverage reports describe observed local-hour labels, not certified completeness of every fare partition.
+Implemented: a tested local-calendar forecast cutoff, a bounded official MTA downloader, source-revision guards, row validation, a typed DuckDB snapshot, and offline byte-integrity verification. Station-hour aggregation and gap/fare/DST auditing are implemented; chronological seasonal-baseline backtesting is implemented; the pooled model is next. Development-baseline metrics are reported separately from the final holdout. Coverage reports describe observed local-hour labels, not certified completeness of every fare partition.
 
 ## Setup and checks
 
@@ -84,4 +84,55 @@ Each audit conserved the input ridership sum. January's fare/payment pair counts
 
 Reproduce the DST probes with `ingest.py download --start 2025-03-08 --end 2025-03-11 --stations 611 602 628 --output data/raw/dst-spring-2025` and the same command for November 1–4 into `data/raw/dst-fall-2025`, then run `aggregate.py` on each. End dates are exclusive. Snapshots are not combined across revisions without recording their provenance.
 
-The predeclared development/calibration/final-period boundaries are in [EVALUATION_PLAN.md](EVALUATION_PLAN.md) and `study_config.json`. October 2026 is reserved for final evaluation; no model fitting or holdout scoring has occurred. The next milestone implements chronological folds and the first seasonal baselines with availability cutoffs.
+The predeclared development/calibration/final-period boundaries are in [EVALUATION_PLAN.md](EVALUATION_PLAN.md) and `study_config.json`. October 2026 is reserved for final evaluation; no model fitting or holdout scoring has occurred. The backtest runner implements chronological folds and both seasonal baselines with availability cutoffs.
+
+## Chronological seasonal-baseline backtest
+
+```sh
+python ingest.py download --start 2025-01-01 --end 2026-09-01 \
+  --stations 602 611 628 --page-size 50000 --max-rows 500000 \
+  --output data/raw/development-2025-01-01-2026-09-01
+python aggregate.py data/raw/development-2025-01-01-2026-09-01 \
+  --output data/processed/development-2025-01-01-2026-09-01
+python backtest.py data/processed/development-2025-01-01-2026-09-01 \
+  --output data/processed/seasonal-development
+```
+
+The runner requires the complete declared development panel, verifies its artifact checksums and station-hour grid, and rejects input selections containing calibration or holdout dates. No calibration/holdout command is exposed. It generates the six declared month-long development folds and walks forward one issuance day at a time. Earlier validation observations may become available to later issuances when the assumed reporting delay has elapsed; observations later than each cutoff cannot enter the predictor.
+
+For a target service day `T`, issuance is `T-1` and the latest available complete service day is `T-1-lag`. For example, forecasting Monday March 17, 2025 on Sunday March 16 under a seven-day publication delay gives a March 9 cutoff. The previous Monday (March 10) is unavailable, so the latest weekly reference is March 3. A reference exactly on the cutoff is allowed.
+
+Two baselines share identical scoreable cases:
+
+- `seasonal_latest`: the latest observed same station, weekday, and hour at/before the issuance cutoff.
+- `seasonal_mean4`: the unweighted mean of up to four such observations. It needs at least one; missing and DST-excluded references are skipped. There is no cross-station fallback, interpolation, or assumed zero for missing history.
+
+DST transition days receive no forecasts or scores. Missing targets are unscored; an available prediction may still be retained for diagnosis. Reported zeros are valid targets. The output `predictions.parquet` retains issuance/target/cutoff dates, reference counts and oldest/newest reference dates, actuals, predictions, statuses, and scoreability. A final SQL chronology audit rejects any newest reference after its cutoff. The source/aggregate files remain unchanged.
+
+`metrics.json` reports scheduled/observed/predictable/scored counts plus MAE, RMSE, and WAPE, overall and by fold, station, weekday/weekend, and clock-hour band. MAE is mean absolute error in entries per station-hour; RMSE is root mean square error in the same units; WAPE is total absolute error divided by total observed entries on scored cases, stored as a fraction. WAPE is null when its denominator is zero. Peak clock hours are fixed at 07–09 and 16–18, including weekends; other hours are off-peak. Compare error metrics with their coverage counts, not as if missing targets were zero-error cases.
+
+Small measured metrics and ingestion/aggregation provenance reports are kept under `reports/`. Prediction arrays, panels, and raw data remain outside Git/checkpoints. Development-fold results describe the three selected Manhattan hubs using currently revised records and simulated publication delays; they are not final holdout scores or evidence of historical as-published availability.
+
+### First measured development results
+
+Six declared validation months, three complexes, 13,104 scored station-hours per baseline/delay, with 72 transition-day station-hours excluded per run. No validation target or seasonal reference was imputed. September calibration and October final holdout were not loaded.
+
+| Assumed lag (days) | Latest weekly MAE | Mean of four MAE | Latest weekly WAPE | Mean of four WAPE |
+| --- | ---: | ---: | ---: | ---: |
+| 1 | 368.47 | 382.37 | 10.37% | 10.76% |
+| 3 | 368.47 | 382.37 | 10.37% | 10.76% |
+| 7 | 445.55 | 404.94 | 12.54% | 11.40% |
+| 14 | 495.85 | 411.76 | 13.96% | 11.59% |
+
+Lags of 1 and 3 days select the same weekly references, explaining their identical scores; a seven-day delay makes the immediately preceding week's matching day unavailable at issuance. At one-day delay, the four-reference mean has worse MAE but lower RMSE (736.56 vs 800.97), so the preferred baseline depends on the error objective. These are development comparisons, not a final model selection or holdout result.
+
+The full development source snapshot contained 414,728 fare/payment rows and aggregated to 43,776 station-hour labels. The audit found one missing non-DST hour (Fulton Street, March 28, 2026 at 02:00), outside the declared validation months; it remains null. All three transition days in the development range were excluded. The small measured reports are `reports/ingest_development.json`, `aggregation_development.json`, `baseline_development.json`, and `baseline_verification.json`.
+
+An independent checker steps backward in seven-day increments rather than using the predictor's history index. It checked all **105,408 saved prediction records**, including unscored records, and recalculated the overall metrics in Python with zero discrepancies:
+
+```sh
+python verify_backtest.py data/processed/development-2025-01-01-2026-09-01 \
+  data/processed/seasonal-development
+```
+
+Run verification without Python's `-O` option. Checksums identify the exact inputs/results tested; a later official-source revision can change a re-download.

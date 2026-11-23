@@ -1,0 +1,7 @@
+{
+  "prediction_rows_checked": 105408,
+  "reference_or_metric_discrepancies": 0,
+  "method": "independent seven-day backward search plus Python metric recalculation",
+  "source_rows_sha256": "9c1b959eb3d52afe55649cdfb3b45cbe0cb255803d671ebd5b736709fe931dc7",
+  "predictions_parquet_sha256": "084e9fc715436d8ca1b4b22b72618aa0cffeeb0cac75f5187887d9f72ffe922d"
+}

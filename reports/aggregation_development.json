@@ -1,0 +1,390 @@
+{
+  "absent_pair_slots_at_observed_hours": 66764,
+  "artifacts": {
+    "station_hours.duckdb": "9ccb46bbac71dc0960ebf4008fce6ff16ee20972f4e91a07444891251e7946e4",
+    "station_hours.parquet": "ba6fa87759b75ba6ad43aa0828682f9a613d39a071615f9d2dc4ebecdfaa0f52"
+  },
+  "calendar_wall_hour_labels": 14592,
+  "coverage_by_station": [
+    {
+      "eligible_coverage": 1.0,
+      "eligible_wall_hours": 14520,
+      "excluded_dst_wall_hours": 72,
+      "missing_eligible_hours": 0,
+      "observed_eligible_hours": 14520,
+      "observed_fare_pairs_max": 11,
+      "observed_fare_pairs_min": 1,
+      "observed_wall_hours_including_dst": 14591,
+      "station_complex_id": "602"
+    },
+    {
+      "eligible_coverage": 1.0,
+      "eligible_wall_hours": 14520,
+      "excluded_dst_wall_hours": 72,
+      "missing_eligible_hours": 0,
+      "observed_eligible_hours": 14520,
+      "observed_fare_pairs_max": 11,
+      "observed_fare_pairs_min": 2,
+      "observed_wall_hours_including_dst": 14591,
+      "station_complex_id": "611"
+    },
+    {
+      "eligible_coverage": 0.999931129476584,
+      "eligible_wall_hours": 14520,
+      "excluded_dst_wall_hours": 72,
+      "missing_eligible_hours": 1,
+      "observed_eligible_hours": 14519,
+      "observed_fare_pairs_max": 11,
+      "observed_fare_pairs_min": 1,
+      "observed_wall_hours_including_dst": 14590,
+      "station_complex_id": "628"
+    }
+  ],
+  "dst_duplicate_key_groups": 0,
+  "dst_observations": [
+    {
+      "dst_kind": "nonexistent",
+      "local_timestamp": "2025-03-09T02:00:00",
+      "ridership_observed": 56.0,
+      "source_rows": 5,
+      "station_complex_id": "602"
+    },
+    {
+      "dst_kind": "ambiguous",
+      "local_timestamp": "2025-11-02T01:00:00",
+      "ridership_observed": 1602.0,
+      "source_rows": 9,
+      "station_complex_id": "602"
+    },
+    {
+      "dst_kind": "nonexistent",
+      "local_timestamp": "2026-03-08T02:00:00",
+      "ridership_observed": null,
+      "source_rows": 0,
+      "station_complex_id": "602"
+    },
+    {
+      "dst_kind": "nonexistent",
+      "local_timestamp": "2025-03-09T02:00:00",
+      "ridership_observed": 209.0,
+      "source_rows": 6,
+      "station_complex_id": "611"
+    },
+    {
+      "dst_kind": "ambiguous",
+      "local_timestamp": "2025-11-02T01:00:00",
+      "ridership_observed": 2560.0,
+      "source_rows": 11,
+      "station_complex_id": "611"
+    },
+    {
+      "dst_kind": "nonexistent",
+      "local_timestamp": "2026-03-08T02:00:00",
+      "ridership_observed": null,
+      "source_rows": 0,
+      "station_complex_id": "611"
+    },
+    {
+      "dst_kind": "nonexistent",
+      "local_timestamp": "2025-03-09T02:00:00",
+      "ridership_observed": 39.0,
+      "source_rows": 5,
+      "station_complex_id": "628"
+    },
+    {
+      "dst_kind": "ambiguous",
+      "local_timestamp": "2025-11-02T01:00:00",
+      "ridership_observed": 560.0,
+      "source_rows": 10,
+      "station_complex_id": "628"
+    },
+    {
+      "dst_kind": "nonexistent",
+      "local_timestamp": "2026-03-08T02:00:00",
+      "ridership_observed": null,
+      "source_rows": 0,
+      "station_complex_id": "628"
+    }
+  ],
+  "fare_payment_mismatch_rows": 0,
+  "fare_payment_partitions": [
+    {
+      "fare_class_category": "Metrocard - Fair Fare",
+      "payment_method": "metrocard",
+      "ridership": 323801.0,
+      "rows": 8058,
+      "station_complex_id": "602"
+    },
+    {
+      "fare_class_category": "Metrocard - Full Fare",
+      "payment_method": "metrocard",
+      "ridership": 920493.0,
+      "rows": 11027,
+      "station_complex_id": "602"
+    },
+    {
+      "fare_class_category": "Metrocard - Other",
+      "payment_method": "metrocard",
+      "ridership": 610512.0,
+      "rows": 14370,
+      "station_complex_id": "602"
+    },
+    {
+      "fare_class_category": "Metrocard - Seniors & Disability",
+      "payment_method": "metrocard",
+      "ridership": 221801.0,
+      "rows": 9114,
+      "station_complex_id": "602"
+    },
+    {
+      "fare_class_category": "Metrocard - Unlimited 30-Day",
+      "payment_method": "metrocard",
+      "ridership": 993532.0,
+      "rows": 12583,
+      "station_complex_id": "602"
+    },
+    {
+      "fare_class_category": "Metrocard - Unlimited 7-Day",
+      "payment_method": "metrocard",
+      "ridership": 751177.0,
+      "rows": 11376,
+      "station_complex_id": "602"
+    },
+    {
+      "fare_class_category": "OMNY - Fair Fare",
+      "payment_method": "omny",
+      "ridership": 847751.0,
+      "rows": 12978,
+      "station_complex_id": "602"
+    },
+    {
+      "fare_class_category": "OMNY - Full Fare",
+      "payment_method": "omny",
+      "ridership": 32132312.0,
+      "rows": 14585,
+      "station_complex_id": "602"
+    },
+    {
+      "fare_class_category": "OMNY - Other",
+      "payment_method": "omny",
+      "ridership": 328767.0,
+      "rows": 13879,
+      "station_complex_id": "602"
+    },
+    {
+      "fare_class_category": "OMNY - Seniors & Disability",
+      "payment_method": "omny",
+      "ridership": 1624233.0,
+      "rows": 14189,
+      "station_complex_id": "602"
+    },
+    {
+      "fare_class_category": "OMNY - Students",
+      "payment_method": "omny",
+      "ridership": 2000566.0,
+      "rows": 14349,
+      "station_complex_id": "602"
+    },
+    {
+      "fare_class_category": "Metrocard - Fair Fare",
+      "payment_method": "metrocard",
+      "ridership": 549417.0,
+      "rows": 8536,
+      "station_complex_id": "611"
+    },
+    {
+      "fare_class_category": "Metrocard - Full Fare",
+      "payment_method": "metrocard",
+      "ridership": 3165149.0,
+      "rows": 12525,
+      "station_complex_id": "611"
+    },
+    {
+      "fare_class_category": "Metrocard - Other",
+      "payment_method": "metrocard",
+      "ridership": 1229675.0,
+      "rows": 14587,
+      "station_complex_id": "611"
+    },
+    {
+      "fare_class_category": "Metrocard - Seniors & Disability",
+      "payment_method": "metrocard",
+      "ridership": 436432.0,
+      "rows": 10979,
+      "station_complex_id": "611"
+    },
+    {
+      "fare_class_category": "Metrocard - Unlimited 30-Day",
+      "payment_method": "metrocard",
+      "ridership": 1958524.0,
+      "rows": 13444,
+      "station_complex_id": "611"
+    },
+    {
+      "fare_class_category": "Metrocard - Unlimited 7-Day",
+      "payment_method": "metrocard",
+      "ridership": 2279088.0,
+      "rows": 12357,
+      "station_complex_id": "611"
+    },
+    {
+      "fare_class_category": "OMNY - Fair Fare",
+      "payment_method": "omny",
+      "ridership": 1327355.0,
+      "rows": 13133,
+      "station_complex_id": "611"
+    },
+    {
+      "fare_class_category": "OMNY - Full Fare",
+      "payment_method": "omny",
+      "ridership": 63557389.0,
+      "rows": 14586,
+      "station_complex_id": "611"
+    },
+    {
+      "fare_class_category": "OMNY - Other",
+      "payment_method": "omny",
+      "ridership": 1105143.0,
+      "rows": 14502,
+      "station_complex_id": "611"
+    },
+    {
+      "fare_class_category": "OMNY - Seniors & Disability",
+      "payment_method": "omny",
+      "ridership": 2861498.0,
+      "rows": 14541,
+      "station_complex_id": "611"
+    },
+    {
+      "fare_class_category": "OMNY - Students",
+      "payment_method": "omny",
+      "ridership": 2263951.0,
+      "rows": 14545,
+      "station_complex_id": "611"
+    },
+    {
+      "fare_class_category": "Metrocard - Fair Fare",
+      "payment_method": "metrocard",
+      "ridership": 203892.0,
+      "rows": 7754,
+      "station_complex_id": "628"
+    },
+    {
+      "fare_class_category": "Metrocard - Full Fare",
+      "payment_method": "metrocard",
+      "ridership": 1363206.0,
+      "rows": 11255,
+      "station_complex_id": "628"
+    },
+    {
+      "fare_class_category": "Metrocard - Other",
+      "payment_method": "metrocard",
+      "ridership": 556443.0,
+      "rows": 14527,
+      "station_complex_id": "628"
+    },
+    {
+      "fare_class_category": "Metrocard - Seniors & Disability",
+      "payment_method": "metrocard",
+      "ridership": 144578.0,
+      "rows": 8827,
+      "station_complex_id": "628"
+    },
+    {
+      "fare_class_category": "Metrocard - Unlimited 30-Day",
+      "payment_method": "metrocard",
+      "ridership": 682096.0,
+      "rows": 12534,
+      "station_complex_id": "628"
+    },
+    {
+      "fare_class_category": "Metrocard - Unlimited 7-Day",
+      "payment_method": "metrocard",
+      "ridership": 723949.0,
+      "rows": 10832,
+      "station_complex_id": "628"
+    },
+    {
+      "fare_class_category": "OMNY - Fair Fare",
+      "payment_method": "omny",
+      "ridership": 510099.0,
+      "rows": 12679,
+      "station_complex_id": "628"
+    },
+    {
+      "fare_class_category": "OMNY - Full Fare",
+      "payment_method": "omny",
+      "ridership": 27662249.0,
+      "rows": 14586,
+      "station_complex_id": "628"
+    },
+    {
+      "fare_class_category": "OMNY - Other",
+      "payment_method": "omny",
+      "ridership": 353176.0,
+      "rows": 13232,
+      "station_complex_id": "628"
+    },
+    {
+      "fare_class_category": "OMNY - Seniors & Disability",
+      "payment_method": "omny",
+      "ridership": 919535.0,
+      "rows": 14045,
+      "station_complex_id": "628"
+    },
+    {
+      "fare_class_category": "OMNY - Students",
+      "payment_method": "omny",
+      "ridership": 960573.0,
+      "rows": 14214,
+      "station_complex_id": "628"
+    }
+  ],
+  "format_version": 1,
+  "input_rows": 414728,
+  "limitations": [
+    "Observed hour coverage is not proof that every fare partition was reported.",
+    "Fall-back source timestamps cannot identify the two physical occurrences of the repeated hour.",
+    "Source data are currently revised records, not historical publication snapshots.",
+    "No forecasting model or accuracy evaluation is included."
+  ],
+  "ordinary_duplicate_key_groups": 0,
+  "policy": {
+    "dst": "retain raw local-hour sums for audit; exclude entire transition day from targets",
+    "fare_pair_absence": "diagnostic only; absence may mean zero transactions or missing data; completeness is not certified",
+    "missing": "NULL target; no zero imputation",
+    "service_date": "local calendar date, midnight boundary",
+    "target": "sum ridership across observed fare/payment rows; transfers not added"
+  },
+  "ridership_total_after": 155568362.0,
+  "ridership_total_before": 155568362.0,
+  "selection": {
+    "end_exclusive": "2026-09-01",
+    "mode": "subway",
+    "start": "2025-01-01",
+    "station_complex_ids": [
+      "602",
+      "611",
+      "628"
+    ]
+  },
+  "source_rows_sha256": "9c1b959eb3d52afe55649cdfb3b45cbe0cb255803d671ebd5b736709fe931dc7",
+  "source_version": {
+    "dataset_id": "5wq4-mkjj",
+    "required_column_types": {
+      "borough": "text",
+      "fare_class_category": "text",
+      "payment_method": "text",
+      "ridership": "number",
+      "station_complex": "text",
+      "station_complex_id": "text",
+      "transfers": "number",
+      "transit_mode": "text",
+      "transit_timestamp": "calendar_date"
+    },
+    "rows_updated_at": 1795017102
+  },
+  "station_hour_grid_rows": 43776,
+  "timezone": "America/New_York",
+  "tzdata_version": "2025.2"
+}
