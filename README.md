@@ -4,7 +4,7 @@ Forecast next-day hourly entries at selected NYC subway station complexes. The p
 
 ## Current status
 
-Implemented: a tested local-calendar forecast cutoff, a bounded official MTA downloader, source-revision guards, row validation, a typed DuckDB snapshot, and offline byte-integrity verification. Station-hour aggregation and gap/fare/DST auditing are implemented; chronological seasonal-baseline backtesting is implemented; the pooled model is next. Development-baseline metrics are reported separately from the final holdout. Coverage reports describe observed local-hour labels, not certified completeness of every fare partition.
+Implemented: a tested local-calendar forecast cutoff, a bounded official MTA downloader, source-revision guards, row validation, a typed DuckDB snapshot, and offline byte-integrity verification. Station-hour aggregation and gap/fare/DST auditing are implemented; chronological seasonal-baseline backtesting is implemented; cutoff-bounded forecasting feature generation with explicit source-date provenance and leakage/perturbation guards is implemented (`features.py`); training and evaluating the pooled model is next. Development-baseline metrics are reported separately from the final holdout. Coverage reports describe observed local-hour labels, not certified completeness of every fare partition.
 
 ## Setup and checks
 
@@ -136,3 +136,37 @@ python verify_backtest.py data/processed/development-2025-01-01-2026-09-01 \
 ```
 
 Run verification without Python's `-O` option. Checksums identify the exact inputs/results tested; a later official-source revision can change a re-download.
+
+## Cutoff-bounded forecasting features and leakage guards
+
+```sh
+python features.py data/processed/development-2025-01-01-2026-09-01 \
+  --output data/processed/features-development
+```
+
+`features.py` verifies the full declared development panel (`2025-01-01` to `2026-09-01`, refusing calibration/holdout dates and checksum mismatches), runs canary future-perturbation checks across every station and lag, writes `features.parquet` and `feature_audit.json`, and saves the measured audit summary in [`reports/features_development.json`](reports/features_development.json).
+
+For each `(station_complex_id, target_day, hour, lag_days)` with issuance `issued_on = target_day - 1` and cutoff `observed_through = issued_on - lag_days`, `FeatureHistory` builds 24 model feature columns strictly from `status == 'observed'` observations on service dates `d <= observed_through`:
+
+- **Calendar and cyclic features**: `day_of_week`, `is_weekend`, `is_peak_hour`, `month`, `hour_sin`, `hour_cos`, `dow_sin`, `dow_cos`.
+- **Cutoff-aligned same-weekday/same-hour weekly lags**: `same_weekday_lag1..lag4`, `same_weekday_count4`, `same_weekday_mean4`, `same_weekday_min4`, `same_weekday_max4`, `same_weekday_std4`, `same_weekday_trend` (`lag1 - lag2`), and `same_weekday_age_days` (`target_day - same_weekday_newest_date`).
+- **Trailing 7-day same-hour and intraday profile features** (`[observed_through - 6 days, observed_through]`): `recent_same_hour_latest`, `recent_same_hour_mean7`, `recent_same_hour_count7`, `recent_same_hour_adjacent_mean` (mean of observed `hour - 1` and `hour + 1` on `recent_same_hour_newest_date`), and `cutoff_day_total_24h` (sum of all 24 observed hours on the newest complete 24-hour non-DST day in that trailing 7-day window).
+- **Per-row source-date provenance**: `same_weekday_oldest_date`, `same_weekday_newest_date`, `recent_same_hour_oldest_date`, `recent_same_hour_newest_date`, `cutoff_full_day_date`, `feature_oldest_source_date`, and `feature_newest_source_date`.
+
+Three independent leakage barriers protect model inputs and training splits:
+1. **Row provenance validation (`validate_feature_row`)**: Rejects any feature vector where any source date exceeds `observed_through`, touches an `excluded_dst_day`, violates `same_weekday_age_days > lag_days`, or emits historical features for a DST transition target day.
+2. **Training-label cutoff validation (`validate_training_cut`)**: At any fold or walk-forward issuance cutoff `C`, rejects any training row with `target_day > C` (excluding targets in the unpublished reporting-lag gap `(C, fold_start)` as well as any missing/DST/unready rows).
+3. **Canary perturbation invariance (`verify_cutoff_invariance`)**: Replaces every observation on service days `d > observed_through` with `1e12`, recomputes the feature vector, and asserts bit-for-bit equality across all feature and provenance columns.
+
+### Measured development feature audit (`reports/features_development.json`)
+
+Generated from the verified development panel (`173,016` total feature rows across lags `1`, `3`, `7`, and `14`; `0` leakage violations; `12/12` canary perturbation checks passed):
+
+| Assumed lag (days) | Total rows | Model-ready rows | Validation scheduled | Validation scoreable | Validation DST excluded | Same-weekday age (days) | Unpublished gap rows excluded at each fold start |
+| ---: | ---: | ---: | ---: | ---: | ---: | --- | ---: |
+| 1 | 43,632 | 43,055 | 13,176 | 13,104 | 72 | 7–14 | 72 |
+| 3 | 43,488 | 43,055 | 13,176 | 13,104 | 72 | 7–14 | 216 |
+| 7 | 43,200 | 42,551 | 13,176 | 13,104 | 72 | 14–21 | 504 |
+| 14 | 42,696 | 42,047 | 13,176 | 13,104 | 72 | 21–28 | 1,008 |
+
+Every lag produces the exact same `13,104` scoreable validation station-hours (`2,160` in 30-day validation months and March 2025 with its DST transition day; `2,232` in January and July 2026) as the seasonal baseline evaluation, ensuring a strictly matched comparison for the pooled model.
