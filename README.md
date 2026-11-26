@@ -4,7 +4,7 @@ Forecast next-day hourly entries at selected NYC subway station complexes. The p
 
 ## Current status
 
-Implemented: a tested local-calendar forecast cutoff, a bounded official MTA downloader, source-revision guards, row validation, a typed DuckDB snapshot, and offline byte-integrity verification. Station-hour aggregation and gap/fare/DST auditing are implemented; chronological seasonal-baseline backtesting is implemented; cutoff-bounded forecasting feature generation with explicit source-date provenance and leakage/perturbation guards is implemented (`features.py`); training and evaluating the pooled model is next. Development-baseline metrics are reported separately from the final holdout. Coverage reports describe observed local-hour labels, not certified completeness of every fare partition.
+Implemented: a tested local-calendar forecast cutoff, a bounded official MTA downloader, source-revision guards, row validation, a typed DuckDB snapshot, and offline byte-integrity verification. Station-hour aggregation and gap/fare/DST auditing are implemented; chronological seasonal-baseline backtesting is implemented; cutoff-bounded forecasting feature generation with explicit source-date provenance and leakage/perturbation guards is implemented (`features.py`); the pooled histogram boosted-tree model (`model.py`, `reports/model_development.json`), reproducible Google Colab experiment notebook ([`notebooks/ridership_forecast_experiment.ipynb`](notebooks/ridership_forecast_experiment.ipynb)), and GitHub Actions CI ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) are implemented; past-residual prediction interval calibration on September 2026 is next. Development metrics are reported separately from the final holdout. Coverage reports describe observed local-hour labels, not certified completeness of every fare partition.
 
 ## Setup and checks
 
@@ -170,3 +170,35 @@ Generated from the verified development panel (`173,016` total feature rows acro
 | 14 | 42,696 | 42,047 | 13,176 | 13,104 | 72 | 21–28 | 1,008 |
 
 Every lag produces the exact same `13,104` scoreable validation station-hours (`2,160` in 30-day validation months and March 2025 with its DST transition day; `2,232` in January and July 2026) as the seasonal baseline evaluation, ensuring a strictly matched comparison for the pooled model.
+
+## Pooled boosted-tree development evaluation and Colab notebook
+
+```sh
+python model.py data/processed/development-2025-01-01-2026-09-01 \
+  --output data/processed/model-development
+```
+
+`model.py` trains a deterministic **pooled histogram gradient-boosted regression tree ensemble** (`PooledBoostedTrees`, method name `pooled_boosted_trees`) across all three station complexes (`602`, `611`, `628`) jointly for each of the six chronological development folds and four reporting lags (`1`, `3`, `7`, and `14` days). At each fold start, `validate_training_cut` enforces that only eligible observations with `target_day <= fold_start_observed_through` enter model fitting. The ensemble selects a fold-specific convex anchor blend between `same_weekday_lag1` and `same_weekday_mean4` on the pre-cutoff training set and fits 20 depth-2 quantile-binned regression trees with L2 leaf regularization (`l2_reg = 25.0`, `min_samples_leaf = 48`, `learning_rate = 0.10`) using Huber-clipped pseudo-residuals (`75th` percentile threshold).
+
+### Measured development comparison (`reports/model_development.json`)
+
+Evaluated across all six validation months (`13,104` scored station-hours per method and lag; `72` DST transition-day station-hours excluded per lag; `0` chronology violations):
+
+| Assumed lag (days) | Method | Scored hours | MAE | RMSE | WAPE |
+| ---: | --- | ---: | ---: | ---: | ---: |
+| 1 | **`pooled_boosted_trees`** | 13,104 | **357.76** | **701.89** | **10.07%** |
+| 1 | `seasonal_latest` | 13,104 | 368.47 | 800.97 | 10.37% |
+| 1 | `seasonal_mean4` | 13,104 | 382.37 | 736.56 | 10.76% |
+| 3 | **`pooled_boosted_trees`** | 13,104 | **360.45** | **705.67** | **10.15%** |
+| 3 | `seasonal_latest` | 13,104 | 368.47 | 800.97 | 10.37% |
+| 3 | `seasonal_mean4` | 13,104 | 382.37 | 736.56 | 10.76% |
+| 7 | `pooled_boosted_trees` | 13,104 | 406.56 | 786.42 | 11.44% |
+| 7 | `seasonal_latest` | 13,104 | 445.55 | 961.37 | 12.54% |
+| 7 | **`seasonal_mean4`** | 13,104 | **404.94** | **773.67** | **11.40%** |
+| 14 | `pooled_boosted_trees` | 13,104 | 431.17 | 815.15 | 12.14% |
+| 14 | `seasonal_latest` | 13,104 | 495.85 | 1,023.01 | 13.96% |
+| 14 | **`seasonal_mean4`** | 13,104 | **411.76** | **782.63** | **11.59%** |
+
+- At **1-day and 3-day reporting delays**, `pooled_boosted_trees` outperforms both `seasonal_latest` and `seasonal_mean4` simultaneously on MAE, RMSE, and WAPE across all three station complexes.
+- At **7-day and 14-day reporting delays**, `pooled_boosted_trees` reduces MAE by **38.98** and **64.68** entries/hour relative to `seasonal_latest`, while the simple unweighted four-week average (`seasonal_mean4`) achieves slightly lower MAE/RMSE because residual tree splits fit before the 1–2 week unpublished label gap experience mild seasonal drift.
+- The reproducible Google Colab-compatible experiment notebook [`notebooks/ridership_forecast_experiment.ipynb`](notebooks/ridership_forecast_experiment.ipynb) installs pinned dependencies, loads or downloads the verified dataset, executes the leakage checks and model comparison, renders diagnostic charts, and verifies [`reports/model_development.json`](reports/model_development.json).
