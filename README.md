@@ -4,7 +4,7 @@ Forecast next-day hourly entries at selected NYC subway station complexes. The p
 
 ## Current status
 
-Implemented: a tested local-calendar forecast cutoff, a bounded official MTA downloader, source-revision guards, row validation, a typed DuckDB snapshot, and offline byte-integrity verification. Station-hour aggregation and gap/fare/DST auditing are implemented; chronological seasonal-baseline backtesting is implemented; cutoff-bounded forecasting feature generation with explicit source-date provenance and leakage/perturbation guards is implemented (`features.py`); the pooled histogram boosted-tree model (`model.py`, `reports/model_development.json`), reproducible Google Colab experiment notebook ([`notebooks/ridership_forecast_experiment.ipynb`](notebooks/ridership_forecast_experiment.ipynb)), and GitHub Actions CI ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) are implemented; past-residual prediction interval calibration on September 2026 is next. Development metrics are reported separately from the final holdout. Coverage reports describe observed local-hour labels, not certified completeness of every fare partition.
+Implemented: a tested local-calendar forecast cutoff, a bounded official MTA downloader, source-revision guards, row validation, a typed DuckDB snapshot, and offline byte-integrity verification. Station-hour aggregation and gap/fare/DST auditing are implemented; chronological seasonal-baseline backtesting is implemented; cutoff-bounded forecasting feature generation with explicit source-date provenance and leakage/perturbation guards is implemented (`features.py`); the pooled histogram boosted-tree model (`model.py`, `reports/model_development.json`), reproducible Google Colab experiment notebook ([`notebooks/ridership_forecast_experiment.ipynb`](notebooks/ridership_forecast_experiment.ipynb)), and GitHub Actions CI ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) are implemented; past-residual prediction interval calibration and reporting-lag slice error walkthroughs (`calibrate.py`, [`reports/calibration_development.json`](reports/calibration_development.json), [`reports/slice_error_walkthrough.json`](reports/slice_error_walkthrough.json)) are implemented. Development metrics are reported separately from the final holdout. Coverage reports describe observed local-hour labels, not certified completeness of every fare partition.
 
 ## Setup and checks
 
@@ -202,3 +202,22 @@ Evaluated across all six validation months (`13,104` scored station-hours per me
 - At **1-day and 3-day reporting delays**, `pooled_boosted_trees` outperforms both `seasonal_latest` and `seasonal_mean4` simultaneously on MAE, RMSE, and WAPE across all three station complexes.
 - At **7-day and 14-day reporting delays**, `pooled_boosted_trees` reduces MAE by **38.98** and **64.68** entries/hour relative to `seasonal_latest`, while the simple unweighted four-week average (`seasonal_mean4`) achieves slightly lower MAE/RMSE because residual tree splits fit before the 1–2 week unpublished label gap experience mild seasonal drift.
 - The reproducible Google Colab-compatible experiment notebook [`notebooks/ridership_forecast_experiment.ipynb`](notebooks/ridership_forecast_experiment.ipynb) installs pinned dependencies, loads or downloads the verified dataset, executes the leakage checks and model comparison, renders diagnostic charts, and verifies [`reports/model_development.json`](reports/model_development.json).
+
+## Past-residual prediction interval calibration and slice error walkthrough
+
+```sh
+python calibrate.py data/processed/model-development/predictions.parquet \
+  --calibration-report reports/calibration_development.json \
+  --slice-report reports/slice_error_walkthrough.json
+```
+
+`calibrate.py` calibrates empirical signed-residual quantile intervals (`50%`, `80%`, and `90%` nominal coverage, non-negative clamped) for each validation fold $f_k$ ($k \ge 2$, `10,944` scored station-hours per method/lag) strictly from preceding validation folds with `target_day <= fold_start_observed_through` (`390,528` cutoff assertions verified, `0` leakage violations, October 2026 holdout strictly refused), stratified by `(station_complex_id, day_type, hour_band)`:
+
+| Assumed lag (days) | Method | p50 Empirical Coverage | p80 Empirical Coverage | p90 Empirical Coverage | p80 Mean Width | p90 Mean Width | p80 Winkler Score | p90 Winkler Score |
+| ---: | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 1 | **`pooled_boosted_trees`** | 40.72% | 68.69% | 79.93% | **810.06** | **1,288.20** | **2,569.93** | **3,721.55** |
+| 1 | `seasonal_latest` | 43.59% | 72.03% | 83.28% | 819.40 | 1,383.94 | 2,735.20 | 4,027.89 |
+| 1 | `seasonal_mean4` | 40.60% | 68.07% | 78.89% | 863.51 | 1,358.67 | 2,692.55 | 3,943.35 |
+
+- Because validation folds occur at 3-to-4-month intervals across changing seasonal volume regimes, empirical coverage on sparse preceding-fold residuals exhibits ~7–11 percentage points of under-coverage across all methods, while `pooled_boosted_trees` achieves the best (lowest) **Winkler proper interval score** across `p50`, `p80`, and `p90` at 1-day and 3-day lags due to smaller tail excursions.
+- [`reports/slice_error_walkthrough.json`](reports/slice_error_walkthrough.json) quantifies reporting-lag degradation (`lag 1 -> 3 -> 7 -> 14` days: `pooled_boosted_trees` MAE `+0.00`, `+2.69`, `+48.80`, `+73.41` entries/hour; WAPE `+0.00`, `+0.076`, `+1.374`, `+2.067` percentage points) and joint `(station_complex_id, day_type, hour_band)` error distributions across Union Square (`602`), Times Square (`611`), and Fulton Street (`628`).
